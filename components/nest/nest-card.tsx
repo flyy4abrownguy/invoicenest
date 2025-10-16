@@ -1,16 +1,18 @@
 import { cn } from "@/lib/utils/cn";
-import { ReactNode } from "react";
+import { ReactNode, CSSProperties } from "react";
 
 export function NestCard({
   children,
   className = "",
   hover = false,
-  onClick
+  onClick,
+  style
 }: {
   children: ReactNode;
   className?: string;
   hover?: boolean;
   onClick?: () => void;
+  style?: CSSProperties;
 }) {
   return (
     <div
@@ -20,6 +22,7 @@ export function NestCard({
         className
       )}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>

@@ -52,7 +52,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold">Welcome to Your Nest</h2>
-          <p className="text-muted-foreground mt-1">Here's what's happening with your invoices</p>
+          <p className="text-muted-foreground mt-1">Here&apos;s what&apos;s happening with your invoices</p>
         </div>
         <Link href="/dashboard/invoices/new">
           <NestButton size="lg" withNest>

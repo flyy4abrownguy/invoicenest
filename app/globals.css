@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+:root {
+  /* Nest-themed Color Palette */
+  --nest-teal: #0d9488;
+  --nest-blue: #06b6d4;
+  --nest-amber: #f59e0b;
+  --nest-gold: #eab308;
+  --nest-sage: #10b981;
+  --nest-coral: #fb923c;
+
+  /* Base colors - Light mode */
+  --background: #fafaf9;
+  --foreground: #292524;
+  --card: #ffffff;
+  --card-foreground: #292524;
+  --popover: #ffffff;
+  --popover-foreground: #292524;
+  --primary: #0d9488;
+  --primary-foreground: #fafaf9;
+  --secondary: #f59e0b;
+  --secondary-foreground: #292524;
+  --muted: #f5f5f4;
+  --muted-foreground: #78716c;
+  --accent: #10b981;
+  --accent-foreground: #292524;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafaf9;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --ring: #0d9488;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Warm dark theme with nest colors */
+    --background: #1c1917;
+    --foreground: #fafaf9;
+    --card: #292524;
+    --card-foreground: #fafaf9;
+    --popover: #292524;
+    --popover-foreground: #fafaf9;
+    --primary: #14b8a6;
+    --primary-foreground: #1c1917;
+    --secondary: #fbbf24;
+    --secondary-foreground: #1c1917;
+    --muted: #44403c;
+    --muted-foreground: #a8a29e;
+    --accent: #34d399;
+    --accent-foreground: #1c1917;
+    --destructive: #f87171;
+    --destructive-foreground: #fafaf9;
+    --border: #44403c;
+    --input: #44403c;
+    --ring: #14b8a6;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Nest-themed animations */
+@keyframes nest-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes nest-settle {
+  0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
+  50% { transform: translateY(2px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes egg-hatch {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.05) rotate(5deg); }
+  50% { transform: scale(1.1) rotate(-5deg); }
+  75% { transform: scale(1.05) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes weave {
+  0% { opacity: 0; transform: translateX(-5px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.animate-nest-bounce {
+  animation: nest-bounce 0.6s ease-in-out;
+}
+
+.animate-nest-settle {
+  animation: nest-settle 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-egg-hatch {
+  animation: egg-hatch 0.8s ease-in-out;
+}
+
+.animate-weave {
+  animation: weave 0.4s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nest-teal);
+}

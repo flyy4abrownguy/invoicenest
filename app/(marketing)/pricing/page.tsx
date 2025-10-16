@@ -77,7 +77,7 @@ export default function PricingPage() {
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Choose Your Nest</h1>
           <p className="text-xl text-muted-foreground">
-            Start free, upgrade when you're ready
+            Start free, upgrade when you&apos;re ready
           </p>
         </div>
 

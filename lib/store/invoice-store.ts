@@ -37,7 +37,7 @@ export const useInvoiceStore = create<InvoiceStore>((set, get) => ({
           invoice_id: state.currentInvoice?.id || '',
           description: '',
           quantity: 1,
-          rate: 0,
+          rate: NaN, // Start with empty value
           amount: 0,
           sort_order: state.items.length,
           created_at: new Date().toISOString()

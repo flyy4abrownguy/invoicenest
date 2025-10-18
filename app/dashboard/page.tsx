@@ -1,22 +1,19 @@
+"use client"
+
 import { NestButton } from "@/components/nest/nest-button";
 import { NestCard, NestCardContent, NestCardHeader, NestCardTitle } from "@/components/nest/nest-card";
 import { EmptyNest } from "@/components/nest/empty-nest";
 import { EggStatus } from "@/components/nest/egg-status";
+import { RevenueCard } from "@/components/dashboard/revenue-card";
 import Link from "next/link";
-import { DollarSign, FileText, AlertCircle, CheckCircle } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/calculations";
+import { useDraftStore } from "@/lib/store/draft-store";
+import { format } from "date-fns";
+import { useMemo } from "react";
 
-// Sample data for demonstration
-const stats = {
-  totalNested: 12,
-  totalRevenue: 24580.50,
-  awaiting: 8,
-  awaitingAmount: 12400.00,
-  overdue: 2,
-  overdueAmount: 3200.00,
-};
-
-const recentInvoices = [
+// Sample sent/paid invoices data (these would come from database in production)
+const sentInvoices = [
   {
     id: "1",
     invoice_number: "INV-202501-0001",
@@ -44,6 +41,53 @@ const recentInvoices = [
 ];
 
 export default function DashboardPage() {
+  const { drafts } = useDraftStore();
+
+  // Combine all invoices (drafts + sent invoices)
+  const allInvoices = useMemo(() => [
+    ...drafts.map(draft => ({
+      id: draft.id,
+      invoice_number: draft.invoice_number,
+      client_name: draft.client?.name || "No client selected",
+      total: draft.total,
+      status: "draft" as const,
+      due_date: format(new Date(draft.due_date), 'yyyy-MM-dd'),
+    })),
+    ...sentInvoices
+  ], [drafts]);
+
+  // Calculate real statistics
+  const stats = useMemo(() => {
+    const totalNested = allInvoices.length;
+    const totalRevenue = allInvoices
+      .filter(inv => inv.status === 'paid')
+      .reduce((sum, inv) => sum + inv.total, 0);
+
+    const sentInvoicesList = allInvoices.filter(inv => inv.status === 'sent');
+    const awaiting = sentInvoicesList.length;
+    const awaitingAmount = sentInvoicesList.reduce((sum, inv) => sum + inv.total, 0);
+
+    const overdueInvoicesList = allInvoices.filter(inv => inv.status === 'overdue');
+    const overdue = overdueInvoicesList.length;
+    const overdueAmount = overdueInvoicesList.reduce((sum, inv) => sum + inv.total, 0);
+
+    return {
+      totalNested,
+      totalRevenue,
+      awaiting,
+      awaitingAmount,
+      overdue,
+      overdueAmount,
+    };
+  }, [allInvoices]);
+
+  // Get recent invoices (last 5, excluding drafts)
+  const recentInvoices = useMemo(() => {
+    return allInvoices
+      .filter(inv => inv.status !== 'draft')
+      .slice(0, 5);
+  }, [allInvoices]);
+
   const hasInvoices = recentInvoices.length > 0;
 
   return (
@@ -63,65 +107,58 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <NestCard className="animate-nest-settle">
-          <NestCardHeader>
-            <div className="flex items-center justify-between">
-              <NestCardTitle className="text-sm font-medium text-muted-foreground">
-                Total Nested
-              </NestCardTitle>
-              <FileText className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </NestCardHeader>
-          <NestCardContent>
-            <div className="text-3xl font-bold">{stats.totalNested}</div>
-            <p className="text-sm text-muted-foreground mt-1">Total invoices</p>
-          </NestCardContent>
-        </NestCard>
+        <Link href="/dashboard/invoices" className="block">
+          <NestCard className="animate-nest-settle cursor-pointer transition-all hover:border-primary hover:shadow-md">
+            <NestCardHeader>
+              <div className="flex items-center justify-between">
+                <NestCardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Nested
+                </NestCardTitle>
+                <FileText className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </NestCardHeader>
+            <NestCardContent>
+              <div className="text-3xl font-bold">{stats.totalNested}</div>
+              <p className="text-sm text-muted-foreground mt-1">Total invoices</p>
+            </NestCardContent>
+          </NestCard>
+        </Link>
 
-        <NestCard className="animate-nest-settle" style={{ animationDelay: '0.1s' }}>
-          <NestCardHeader>
-            <div className="flex items-center justify-between">
-              <NestCardTitle className="text-sm font-medium text-muted-foreground">
-                Total Revenue
-              </NestCardTitle>
-              <DollarSign className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </NestCardHeader>
-          <NestCardContent>
-            <div className="text-3xl font-bold text-accent">{formatCurrency(stats.totalRevenue)}</div>
-            <p className="text-sm text-muted-foreground mt-1">All time revenue</p>
-          </NestCardContent>
-        </NestCard>
+        <RevenueCard invoices={allInvoices} />
 
-        <NestCard className="animate-nest-settle" style={{ animationDelay: '0.2s' }}>
-          <NestCardHeader>
-            <div className="flex items-center justify-between">
-              <NestCardTitle className="text-sm font-medium text-muted-foreground">
-                Awaiting Payment
-              </NestCardTitle>
-              <CheckCircle className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </NestCardHeader>
-          <NestCardContent>
-            <div className="text-3xl font-bold text-primary">{formatCurrency(stats.awaitingAmount)}</div>
-            <p className="text-sm text-muted-foreground mt-1">{stats.awaiting} invoices pending</p>
-          </NestCardContent>
-        </NestCard>
+        <Link href="/dashboard/invoices?status=sent" className="block">
+          <NestCard className="animate-nest-settle cursor-pointer transition-all hover:border-primary hover:shadow-md" style={{ animationDelay: '0.2s' }}>
+            <NestCardHeader>
+              <div className="flex items-center justify-between">
+                <NestCardTitle className="text-sm font-medium text-muted-foreground">
+                  Awaiting Payment
+                </NestCardTitle>
+                <CheckCircle className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </NestCardHeader>
+            <NestCardContent>
+              <div className="text-3xl font-bold text-primary">{formatCurrency(stats.awaitingAmount)}</div>
+              <p className="text-sm text-muted-foreground mt-1">{stats.awaiting} invoices pending</p>
+            </NestCardContent>
+          </NestCard>
+        </Link>
 
-        <NestCard className="animate-nest-settle" style={{ animationDelay: '0.3s' }}>
-          <NestCardHeader>
-            <div className="flex items-center justify-between">
-              <NestCardTitle className="text-sm font-medium text-muted-foreground">
-                Overdue
-              </NestCardTitle>
-              <AlertCircle className="w-5 h-5 text-muted-foreground" />
-            </div>
-          </NestCardHeader>
-          <NestCardContent>
-            <div className="text-3xl font-bold text-orange-600">{formatCurrency(stats.overdueAmount)}</div>
-            <p className="text-sm text-muted-foreground mt-1">{stats.overdue} invoices overdue</p>
-          </NestCardContent>
-        </NestCard>
+        <Link href="/dashboard/invoices?status=overdue" className="block">
+          <NestCard className="animate-nest-settle cursor-pointer transition-all hover:border-primary hover:shadow-md" style={{ animationDelay: '0.3s' }}>
+            <NestCardHeader>
+              <div className="flex items-center justify-between">
+                <NestCardTitle className="text-sm font-medium text-muted-foreground">
+                  Overdue
+                </NestCardTitle>
+                <AlertCircle className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </NestCardHeader>
+            <NestCardContent>
+              <div className="text-3xl font-bold text-orange-600">{formatCurrency(stats.overdueAmount)}</div>
+              <p className="text-sm text-muted-foreground mt-1">{stats.overdue} invoices overdue</p>
+            </NestCardContent>
+          </NestCard>
+        </Link>
       </div>
 
       {/* Recent Invoices */}

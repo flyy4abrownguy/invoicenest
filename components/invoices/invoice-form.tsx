@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
-import { Plus, Trash2, Save, Send } from "lucide-react"
+import { Plus, Trash2, Save, Send, UserPlus, Package, BookmarkPlus } from "lucide-react"
 import { useInvoiceStore } from "@/lib/store/invoice-store"
 import { invoiceSchema } from "@/lib/utils/validation"
 import { NestButton } from "@/components/nest/nest-button"
@@ -15,36 +15,87 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/utils/calculations"
+import { InlineClientForm } from "./inline-client-form"
+import { SaveClientDialog } from "./save-client-dialog"
+import { SavedItemsDialog } from "./saved-items-dialog"
+import { useLineItemsStore } from "@/lib/store/line-items-store"
 
-interface InvoiceFormProps {
-  onSave: (data: z.infer<typeof invoiceSchema>, status: 'draft' | 'sent') => Promise<void>
-  clients?: Array<{ id: string; name: string }>
+interface InlineClientData {
+  name: string
+  email: string
+  phone?: string
+  address?: string
 }
 
-export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
-  const { items, addItem, updateItem, removeItem, currentInvoice, updateInvoice, recalculateInvoice } = useInvoiceStore()
+interface InvoiceFormProps {
+  onSave: (data: z.infer<typeof invoiceSchema>, status: 'draft' | 'sent', newClient?: InlineClientData) => Promise<void>
+  clients?: Array<{ id: string; name: string }>
+  initialData?: Partial<z.infer<typeof invoiceSchema>>
+  hideTemplateButton?: boolean
+}
+
+const PAYMENT_TERMS_PRESETS = [
+  'Net 30',
+  'Net 15',
+  'Net 7',
+  'Due on Receipt',
+  'Due upon Completion',
+  '50% Upfront, 50% on Completion',
+  'Custom'
+]
+
+export function InvoiceForm({ onSave, clients = [], initialData, hideTemplateButton = false }: InvoiceFormProps) {
+  const { items, addItem, updateItem, removeItem, currentInvoice, updateInvoice, recalculateInvoice, setCurrentInvoice } = useInvoiceStore()
+  const { addSavedItem } = useLineItemsStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showInlineClient, setShowInlineClient] = useState(false)
+  const [inlineClientData, setInlineClientData] = useState<InlineClientData | null>(null)
+  const [showSaveClientDialog, setShowSaveClientDialog] = useState(false)
+  const [pendingInvoiceData, setPendingInvoiceData] = useState<{data: z.infer<typeof invoiceSchema>, status: 'draft' | 'sent'} | null>(null)
+  const [paymentTermsMode, setPaymentTermsMode] = useState<'preset' | 'custom'>('preset')
+  const [selectedPaymentTerm, setSelectedPaymentTerm] = useState<string>('')
+  const [selectedClient, setSelectedClient] = useState<string>('')
+  const [showSavedItemsDialog, setShowSavedItemsDialog] = useState(false)
+  const [savedItemIndices, setSavedItemIndices] = useState<Set<number>>(new Set())
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch
+    watch,
+    reset
   } = useForm<z.infer<typeof invoiceSchema>>({
     resolver: zodResolver(invoiceSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       invoice_number: `INV-${format(new Date(), 'yyyyMM')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
       issue_date: format(new Date(), 'yyyy-MM-dd'),
       due_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-      tax_rate: 0,
-      discount: 0,
+      tax_rate: undefined,
+      discount: undefined,
       items: [],
     }
   })
 
-  const taxRate = watch('tax_rate')
-  const discount = watch('discount')
+  // Load initial data when provided
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData)
+      if (initialData.items) {
+        setCurrentInvoice({ items: initialData.items })
+      }
+      if (initialData.client_id) {
+        setSelectedClient(initialData.client_id)
+      }
+      if (initialData.payment_terms) {
+        setSelectedPaymentTerm(initialData.payment_terms)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData])
+
+  const taxRate = watch('tax_rate') || 0
+  const discount = watch('discount') || 0
 
   useEffect(() => {
     if (items.length === 0) {
@@ -69,10 +120,78 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
   const handleSaveInvoice = async (status: 'draft' | 'sent') => {
     setIsSubmitting(true)
     try {
-      await handleSubmit((data) => onSave(data, status))()
-    } finally {
+      await handleSubmit(async (data) => {
+        // If using inline client, show save dialog
+        if (showInlineClient && inlineClientData) {
+          setPendingInvoiceData({ data, status })
+          setShowSaveClientDialog(true)
+          setIsSubmitting(false)
+        } else {
+          // Save normally without new client
+          await onSave(data, status)
+        }
+      })()
+    } catch (error) {
+      setIsSubmitting(false)
+      throw error
+    }
+  }
+
+  const handleSaveClient = async () => {
+    if (pendingInvoiceData && inlineClientData) {
+      setShowSaveClientDialog(false)
+      await onSave(pendingInvoiceData.data, pendingInvoiceData.status, inlineClientData)
+      setPendingInvoiceData(null)
       setIsSubmitting(false)
     }
+  }
+
+  const handleSkipSaveClient = async () => {
+    if (pendingInvoiceData) {
+      setShowSaveClientDialog(false)
+      await onSave(pendingInvoiceData.data, pendingInvoiceData.status)
+      setPendingInvoiceData(null)
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSelectSavedItem = (savedItem: any) => {
+    addItem()
+    const newIndex = items.length
+    setTimeout(() => {
+      updateItem(newIndex, {
+        description: savedItem.description,
+        quantity: savedItem.default_quantity,
+        rate: savedItem.rate
+      })
+    }, 0)
+    setShowSavedItemsDialog(false)
+  }
+
+  const handleSaveLineItem = (index: number) => {
+    const item = items[index]
+    if (!item.description || isNaN(item.rate)) {
+      alert('Please fill in description and rate before saving')
+      return
+    }
+
+    addSavedItem({
+      description: item.description,
+      rate: item.rate,
+      default_quantity: item.quantity,
+    })
+
+    // Mark this item as saved
+    setSavedItemIndices(prev => new Set(prev).add(index))
+
+    // Show feedback
+    setTimeout(() => {
+      setSavedItemIndices(prev => {
+        const next = new Set(prev)
+        next.delete(index)
+        return next
+      })
+    }, 2000)
   }
 
   return (
@@ -96,21 +215,64 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
               )}
             </div>
 
-            <div>
-              <Label htmlFor="client_id">Client</Label>
-              <Select onValueChange={(value) => setValue('client_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="client_id">Client</Label>
+                  {!showInlineClient ? (
+                    <Select
+                      value={selectedClient}
+                      onValueChange={(value) => {
+                        setSelectedClient(value)
+                        setValue('client_id', value)
+                      }}
+                      disabled={showInlineClient}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="h-10 px-3 py-2 border border-primary bg-primary/10 rounded-md text-sm flex items-center">
+                      New Client: {inlineClientData?.name || 'Incomplete'}
+                    </div>
+                  )}
+                </div>
+                <NestButton
+                  type="button"
+                  variant={showInlineClient ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => {
+                    setShowInlineClient(!showInlineClient)
+                    if (showInlineClient) {
+                      setInlineClientData(null)
+                    }
+                  }}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {showInlineClient ? 'Select Existing' : 'New Client'}
+                </NestButton>
+              </div>
             </div>
+
+            {showInlineClient && (
+              <div className="col-span-2">
+                <InlineClientForm
+                  onClientDataChange={setInlineClientData}
+                  onCancel={() => {
+                    setShowInlineClient(false)
+                    setInlineClientData(null)
+                  }}
+                />
+              </div>
+            )}
 
             <div>
               <Label htmlFor="issue_date">Issue Date</Label>
@@ -143,19 +305,30 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
       <NestCard className="animate-nest-settle" style={{ animationDelay: '0.1s' }}>
         <NestCardHeader className="flex items-center justify-between">
           <NestCardTitle>Line Items</NestCardTitle>
-          <NestButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addItem}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
-          </NestButton>
+          <div className="flex gap-2">
+            <NestButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSavedItemsDialog(true)}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Saved Items
+            </NestButton>
+            <NestButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addItem}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </NestButton>
+          </div>
         </NestCardHeader>
         <NestCardContent className="space-y-4">
           {items.map((item, index) => (
-            <div key={item.id} className="grid grid-cols-12 gap-4 items-start p-4 border border-border rounded-lg animate-weave">
+            <div key={item.id || `item-${index}`} className="grid grid-cols-12 gap-4 items-start p-4 border border-border rounded-lg animate-weave">
               <div className="col-span-12 md:col-span-5">
                 <Label htmlFor={`item-description-${index}`}>Description</Label>
                 <Input
@@ -185,19 +358,33 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={item.rate}
-                  onChange={(e) => updateItem(index, { rate: parseFloat(e.target.value) || 0 })}
+                  value={isNaN(item.rate) ? '' : item.rate}
+                  onChange={(e) => updateItem(index, { rate: e.target.value === '' ? NaN : parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
                 />
               </div>
 
-              <div className="col-span-3 md:col-span-2">
+              <div className="col-span-3 md:col-span-1">
                 <Label>Amount</Label>
                 <div className="flex items-center h-10 px-3 py-2 text-sm font-semibold text-accent">
                   {formatCurrency(item.amount)}
                 </div>
               </div>
 
-              <div className="col-span-1 flex items-end">
+              <div className="col-span-1 flex items-end gap-1">
+                <NestButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSaveLineItem(index)}
+                  title="Save as reusable item"
+                >
+                  {savedItemIndices.has(index) ? (
+                    <BookmarkPlus className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <BookmarkPlus className="w-4 h-4" />
+                  )}
+                </NestButton>
                 <NestButton
                   type="button"
                   variant="ghost"
@@ -277,11 +464,51 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
         <NestCardContent className="space-y-4">
           <div>
             <Label htmlFor="payment_terms">Payment Terms</Label>
-            <Input
-              id="payment_terms"
-              {...register('payment_terms')}
-              placeholder="e.g., Net 30, Due on receipt"
-            />
+            {paymentTermsMode === 'preset' ? (
+              <Select
+                onValueChange={(value) => {
+                  if (value === 'Custom') {
+                    setPaymentTermsMode('custom')
+                    setValue('payment_terms', '')
+                  } else {
+                    setSelectedPaymentTerm(value)
+                    setValue('payment_terms', value)
+                  }
+                }}
+                value={selectedPaymentTerm}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS_PRESETS.map((term) => (
+                    <SelectItem key={term} value={term}>
+                      {term}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  id="payment_terms"
+                  {...register('payment_terms')}
+                  placeholder="Enter custom payment terms"
+                />
+                <NestButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPaymentTermsMode('preset')
+                    setValue('payment_terms', '')
+                    setSelectedPaymentTerm('')
+                  }}
+                >
+                  ← Back to Presets
+                </NestButton>
+              </div>
+            )}
           </div>
 
           <div>
@@ -319,6 +546,21 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
           Save & Send
         </NestButton>
       </div>
+
+      {/* Save Client Dialog */}
+      <SaveClientDialog
+        open={showSaveClientDialog}
+        clientName={inlineClientData?.name || ''}
+        onSave={handleSaveClient}
+        onSkip={handleSkipSaveClient}
+      />
+
+      {/* Saved Items Dialog */}
+      <SavedItemsDialog
+        open={showSavedItemsDialog}
+        onClose={() => setShowSavedItemsDialog(false)}
+        onSelectItem={handleSelectSavedItem}
+      />
     </form>
   )
 }

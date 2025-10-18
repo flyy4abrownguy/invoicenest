@@ -1,6 +1,7 @@
 import { NestLogoWithText } from "@/components/nest/nest-logo";
 import Link from "next/link";
 import { Home, FileText, Users, Settings, LogOut } from "lucide-react";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 
 export default function DashboardLayout({
   children,
@@ -66,19 +67,7 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <header className="border-b border-border bg-card/50 backdrop-blur">
-          <div className="px-8 h-16 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold">Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Plan:</span>{" "}
-                <span className="font-medium text-primary">Free Tier</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        <DashboardHeader />
         <main className="flex-1 p-8 bg-background overflow-auto">
           {children}
         </main>

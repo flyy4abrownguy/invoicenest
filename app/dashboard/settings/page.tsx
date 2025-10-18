@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -14,10 +14,14 @@ import { Building, CreditCard, User, Upload, Crown, Settings2, Gift } from "luci
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getTierLimits } from "@/lib/config/feature-flags"
 import { ReferralSection } from "@/components/settings/referral-section"
+import { formatPhoneNumber } from "@/lib/utils/phone-formatter"
+import { AvatarUpload } from "@/components/settings/avatar-upload"
 
 export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'preferences' | 'billing' | 'referrals'>('profile')
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>()
+  const [logoUrl, setLogoUrl] = useState<string | undefined>()
 
   // Mock user email - in production this would come from auth
   const userEmail = 'akilrajpari@gmail.com'
@@ -26,7 +30,9 @@ export default function SettingsPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
+    setValue,
+    watch
   } = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -38,12 +44,42 @@ export default function SettingsPage() {
     }
   })
 
+  const companyPhone = watch('company_phone')
+
+  // Format company phone number as user types
+  useEffect(() => {
+    if (companyPhone) {
+      const formatted = formatPhoneNumber(companyPhone)
+      if (formatted !== companyPhone) {
+        setValue('company_phone', formatted, { shouldValidate: false })
+      }
+    }
+  }, [companyPhone, setValue])
+
   const handleSaveProfile = async (data: z.infer<typeof profileSchema>) => {
     setIsSaving(true)
     try {
-      // TODO: Implement actual API call
-      console.log('Saving profile:', data)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const profileData = {
+        ...data,
+        avatar_url: avatarUrl,
+        company_logo: logoUrl,
+      }
+
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save profile')
+      }
+
+      console.log('Profile saved successfully')
+      alert('Profile updated successfully!')
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save profile. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -124,18 +160,12 @@ export default function SettingsPage() {
               <NestCardTitle>Personal Information</NestCardTitle>
             </NestCardHeader>
             <NestCardContent className="space-y-4">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-10 h-10 text-primary" />
-                </div>
-                <div>
-                  <NestButton type="button" variant="outline" size="sm">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Photo
-                  </NestButton>
-                  <p className="text-sm text-muted-foreground mt-1">JPG or PNG, max 2MB</p>
-                </div>
-              </div>
+              <AvatarUpload
+                label="Upload Photo"
+                type="avatar"
+                currentAvatarUrl={avatarUrl}
+                onUpload={setAvatarUrl}
+              />
 
               <div>
                 <Label htmlFor="full_name">Full Name</Label>
@@ -177,19 +207,16 @@ export default function SettingsPage() {
               <NestCardTitle>Company Information</NestCardTitle>
             </NestCardHeader>
             <NestCardContent className="space-y-4">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center">
-                  <Building className="w-10 h-10 text-muted-foreground" />
-                </div>
-                <div>
-                  <NestButton type="button" variant="outline" size="sm">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Logo
-                  </NestButton>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This will appear on your invoices
-                  </p>
-                </div>
+              <div>
+                <AvatarUpload
+                  label="Upload Logo"
+                  type="logo"
+                  currentAvatarUrl={logoUrl}
+                  onUpload={setLogoUrl}
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  This will appear on your invoices
+                </p>
               </div>
 
               <div>

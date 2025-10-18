@@ -9,17 +9,9 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { NestButton } from "@/components/nest/nest-button"
 import { useDraftStore } from "@/lib/store/draft-store"
-import { Invoice } from "@/lib/types"
+import { Invoice, Client } from "@/lib/types"
 import { InvoiceTemplate } from "@/lib/data/invoice-templates"
-import { useInvoiceStore } from "@/lib/store/invoice-store"
 import { format } from "date-fns"
-
-// Mock clients data - will be replaced with actual data fetching
-const mockClients = [
-  { id: "1", name: "Acme Corp" },
-  { id: "2", name: "TechStart Inc" },
-  { id: "3", name: "Design Studio" },
-]
 
 interface NewClientData {
   name: string
@@ -32,12 +24,28 @@ export default function NewInvoicePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { drafts, addDraft, removeDraft, getDraft } = useDraftStore()
-  const { setCurrentInvoice } = useInvoiceStore()
   const [showDraftDialog, setShowDraftDialog] = useState(false)
   const [showTemplatesDialog, setShowTemplatesDialog] = useState(false)
   const [selectedDraft, setSelectedDraft] = useState<Invoice | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplate | null>(null)
   const [hasCheckedDrafts, setHasCheckedDrafts] = useState(false)
+  const [clients, setClients] = useState<Client[]>([])
+
+  // Fetch clients on mount
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('/api/clients')
+        if (response.ok) {
+          const data = await response.json()
+          setClients(data)
+        }
+      } catch (error) {
+        console.error('Error fetching clients:', error)
+      }
+    }
+    fetchClients()
+  }, [])
 
   // Load draft from query parameter if provided
   useEffect(() => {
@@ -69,90 +77,97 @@ export default function NewInvoicePage() {
 
     try {
       const invoiceData = data as Partial<Invoice>
+      let clientId = invoiceData.client_id
 
-      // Prepare client data
-      let clientData = selectedDraft?.client
+      // If new client provided, save it first
       if (newClient) {
-        // New client entered inline
-        clientData = {
-          id: `temp-client-${Date.now()}`,
-          user_id: 'user-1',
-          name: newClient.name,
-          email: newClient.email,
-          phone: newClient.phone,
-          address: newClient.address,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-      } else if (invoiceData.client_id) {
-        // Existing client selected - find from mockClients
-        const selectedClient = mockClients.find(c => c.id === invoiceData.client_id)
-        if (selectedClient) {
-          clientData = {
-            id: selectedClient.id,
-            user_id: 'user-1',
-            name: selectedClient.name,
-            email: undefined,
-            phone: undefined,
-            address: undefined,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        }
-      }
+        console.log('Saving new client:', newClient)
+        const response = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newClient),
+        })
 
-      // Create invoice object
-      const invoice: Invoice = {
-        id: selectedDraft?.id || `invoice-${Date.now()}`,
-        user_id: 'user-1', // TODO: Get from auth
-        client_id: invoiceData.client_id || clientData?.id || undefined,
-        client: clientData,
-        invoice_number: invoiceData.invoice_number || '',
-        issue_date: invoiceData.issue_date || new Date().toISOString(),
-        due_date: invoiceData.due_date || new Date().toISOString(),
-        subtotal: invoiceData.subtotal || 0,
-        tax_rate: invoiceData.tax_rate || 0,
-        tax_amount: invoiceData.tax_amount || 0,
-        discount: invoiceData.discount || 0,
-        total: invoiceData.total || 0,
-        status,
-        payment_terms: invoiceData.payment_terms,
-        notes: invoiceData.notes,
-        items: invoiceData.items || [],
-        is_recurring: false,
-        created_at: selectedDraft?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        if (!response.ok) {
+          throw new Error('Failed to create client')
+        }
+
+        const createdClient = await response.json()
+        clientId = createdClient.id
       }
 
       if (status === 'draft') {
-        // Save to drafts
+        // Save to local drafts (keep this for now)
         console.log('Saving as draft...')
+        const invoice: Invoice = {
+          id: selectedDraft?.id || `invoice-${Date.now()}`,
+          user_id: 'user-1',
+          client_id: clientId,
+          invoice_number: invoiceData.invoice_number || '',
+          issue_date: invoiceData.issue_date || new Date().toISOString(),
+          due_date: invoiceData.due_date || new Date().toISOString(),
+          subtotal: invoiceData.subtotal || 0,
+          tax_rate: invoiceData.tax_rate || 0,
+          tax_amount: invoiceData.tax_amount || 0,
+          discount: invoiceData.discount || 0,
+          total: invoiceData.total || 0,
+          status,
+          payment_terms: invoiceData.payment_terms,
+          notes: invoiceData.notes,
+          items: invoiceData.items || [],
+          is_recurring: false,
+          created_at: selectedDraft?.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
         if (selectedDraft) {
-          // Update existing draft
           removeDraft(selectedDraft.id)
         }
         addDraft(invoice)
         console.log('Draft saved successfully!')
-
-        // Redirect to invoices list
         router.push('/dashboard/invoices')
       } else {
-        // Save as sent invoice
-        console.log('Saving as sent invoice...')
+        // Save as sent invoice to database
+        console.log('Saving as sent invoice to database...')
 
-        // If new client provided, save it
-        if (newClient) {
-          console.log('Saving new client:', newClient)
-          // TODO: Implement actual API call to save client
+        const invoice = {
+          client_id: clientId,
+          invoice_number: invoiceData.invoice_number || '',
+          issue_date: invoiceData.issue_date || new Date().toISOString(),
+          due_date: invoiceData.due_date || new Date().toISOString(),
+          subtotal: invoiceData.subtotal || 0,
+          tax_rate: invoiceData.tax_rate || 0,
+          tax_amount: invoiceData.tax_amount || 0,
+          discount: invoiceData.discount || 0,
+          total: invoiceData.total || 0,
+          status,
+          payment_terms: invoiceData.payment_terms,
+          notes: invoiceData.notes,
+          is_recurring: false,
+        }
+
+        const items = (invoiceData.items || []).map((item, index: number) => ({
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate,
+          amount: item.amount,
+          sort_order: index,
+        }))
+
+        const response = await fetch('/api/invoices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoice, items }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to create invoice')
         }
 
         // Remove from drafts if it was a draft
         if (selectedDraft) {
           removeDraft(selectedDraft.id)
         }
-
-        // TODO: Implement actual API call to save invoice to database
-        await new Promise(resolve => setTimeout(resolve, 1500))
 
         console.log('Invoice sent successfully! Redirecting...')
         router.push('/dashboard/invoices')
@@ -269,7 +284,7 @@ export default function NewInvoicePage() {
         {/* Invoice Form */}
         <InvoiceForm
           onSave={handleSaveInvoice}
-          clients={mockClients}
+          clients={clients}
           initialData={initialFormData}
           hideTemplateButton={true}
         />

@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { NestButton } from "@/components/nest/nest-button"
 import { Client } from "@/lib/types"
+import { formatPhoneNumber } from "@/lib/utils/phone-formatter"
+import { useState, useEffect } from "react"
 
 interface ClientDialogProps {
   open: boolean
@@ -23,7 +25,9 @@ export function ClientDialog({ open, onOpenChange, onSave, client }: ClientDialo
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    reset
+    reset,
+    setValue,
+    watch
   } = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
     defaultValues: client ? {
@@ -40,6 +44,18 @@ export function ClientDialog({ open, onOpenChange, onSave, client }: ClientDialo
       notes: '',
     }
   })
+
+  const phoneValue = watch('phone')
+
+  // Format phone number as user types
+  useEffect(() => {
+    if (phoneValue) {
+      const formatted = formatPhoneNumber(phoneValue)
+      if (formatted !== phoneValue) {
+        setValue('phone', formatted, { shouldValidate: false })
+      }
+    }
+  }, [phoneValue, setValue])
 
   const handleSaveClient = async (data: z.infer<typeof clientSchema>) => {
     try {

@@ -155,7 +155,7 @@ export function InvoiceForm({ onSave, clients = [], initialData, hideTemplateBut
     }
   }
 
-  const handleSelectSavedItem = (savedItem: any) => {
+  const handleSelectSavedItem = (savedItem: { description: string; rate: number; default_quantity: number }) => {
     addItem()
     const newIndex = items.length
     setTimeout(() => {

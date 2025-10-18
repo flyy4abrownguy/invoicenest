@@ -1,92 +1,30 @@
-"use client"
-
 import { NestButton } from "@/components/nest/nest-button";
 import { NestCard, NestCardContent, NestCardHeader, NestCardTitle } from "@/components/nest/nest-card";
 import { EmptyNest } from "@/components/nest/empty-nest";
 import { EggStatus } from "@/components/nest/egg-status";
-import { RevenueCard } from "@/components/dashboard/revenue-card";
 import Link from "next/link";
 import { FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/calculations";
-import { useDraftStore } from "@/lib/store/draft-store";
+import { getInvoices, getDashboardStats } from "@/lib/db/invoices";
+import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
-import { useMemo } from "react";
 
-// Sample sent/paid invoices data (these would come from database in production)
-const sentInvoices = [
-  {
-    id: "1",
-    invoice_number: "INV-202501-0001",
-    client_name: "Acme Corp",
-    total: 5000,
-    status: "paid" as const,
-    due_date: "2025-01-15",
-  },
-  {
-    id: "2",
-    invoice_number: "INV-202501-0002",
-    client_name: "TechStart Inc",
-    total: 3200,
-    status: "sent" as const,
-    due_date: "2025-01-20",
-  },
-  {
-    id: "3",
-    invoice_number: "INV-202501-0003",
-    client_name: "Design Studio",
-    total: 1800,
-    status: "overdue" as const,
-    due_date: "2025-01-10",
-  },
-];
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export default function DashboardPage() {
-  const { drafts } = useDraftStore();
+  if (!user) {
+    return null; // Will be redirected by middleware
+  }
 
-  // Combine all invoices (drafts + sent invoices)
-  const allInvoices = useMemo(() => [
-    ...drafts.map(draft => ({
-      id: draft.id,
-      invoice_number: draft.invoice_number,
-      client_name: draft.client?.name || "No client selected",
-      total: draft.total,
-      status: "draft" as const,
-      due_date: format(new Date(draft.due_date), 'yyyy-MM-dd'),
-    })),
-    ...sentInvoices
-  ], [drafts]);
-
-  // Calculate real statistics
-  const stats = useMemo(() => {
-    const totalNested = allInvoices.length;
-    const totalRevenue = allInvoices
-      .filter(inv => inv.status === 'paid')
-      .reduce((sum, inv) => sum + inv.total, 0);
-
-    const sentInvoicesList = allInvoices.filter(inv => inv.status === 'sent');
-    const awaiting = sentInvoicesList.length;
-    const awaitingAmount = sentInvoicesList.reduce((sum, inv) => sum + inv.total, 0);
-
-    const overdueInvoicesList = allInvoices.filter(inv => inv.status === 'overdue');
-    const overdue = overdueInvoicesList.length;
-    const overdueAmount = overdueInvoicesList.reduce((sum, inv) => sum + inv.total, 0);
-
-    return {
-      totalNested,
-      totalRevenue,
-      awaiting,
-      awaitingAmount,
-      overdue,
-      overdueAmount,
-    };
-  }, [allInvoices]);
+  // Fetch real data from database
+  const invoices = await getInvoices(user.id);
+  const stats = await getDashboardStats(user.id);
 
   // Get recent invoices (last 5, excluding drafts)
-  const recentInvoices = useMemo(() => {
-    return allInvoices
-      .filter(inv => inv.status !== 'draft')
-      .slice(0, 5);
-  }, [allInvoices]);
+  const recentInvoices = invoices
+    .filter(inv => inv.status !== 'draft')
+    .slice(0, 5);
 
   const hasInvoices = recentInvoices.length > 0;
 
@@ -118,13 +56,26 @@ export default function DashboardPage() {
               </div>
             </NestCardHeader>
             <NestCardContent>
-              <div className="text-3xl font-bold">{stats.totalNested}</div>
+              <div className="text-3xl font-bold">{stats.totalInvoices}</div>
               <p className="text-sm text-muted-foreground mt-1">Total invoices</p>
             </NestCardContent>
           </NestCard>
         </Link>
 
-        <RevenueCard invoices={allInvoices} />
+        <NestCard className="animate-nest-settle cursor-pointer transition-all hover:border-primary hover:shadow-md" style={{ animationDelay: '0.1s' }}>
+          <NestCardHeader>
+            <div className="flex items-center justify-between">
+              <NestCardTitle className="text-sm font-medium text-muted-foreground">
+                Total Revenue
+              </NestCardTitle>
+              <CheckCircle className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </NestCardHeader>
+          <NestCardContent>
+            <div className="text-3xl font-bold text-emerald-600">{formatCurrency(stats.totalRevenue)}</div>
+            <p className="text-sm text-muted-foreground mt-1">{stats.paidInvoices} invoices paid</p>
+          </NestCardContent>
+        </NestCard>
 
         <Link href="/dashboard/invoices?status=sent" className="block">
           <NestCard className="animate-nest-settle cursor-pointer transition-all hover:border-primary hover:shadow-md" style={{ animationDelay: '0.2s' }}>
@@ -137,8 +88,8 @@ export default function DashboardPage() {
               </div>
             </NestCardHeader>
             <NestCardContent>
-              <div className="text-3xl font-bold text-primary">{formatCurrency(stats.awaitingAmount)}</div>
-              <p className="text-sm text-muted-foreground mt-1">{stats.awaiting} invoices pending</p>
+              <div className="text-3xl font-bold text-primary">{formatCurrency(stats.pendingAmount)}</div>
+              <p className="text-sm text-muted-foreground mt-1">{invoices.filter(i => i.status === 'sent').length} invoices pending</p>
             </NestCardContent>
           </NestCard>
         </Link>
@@ -154,8 +105,8 @@ export default function DashboardPage() {
               </div>
             </NestCardHeader>
             <NestCardContent>
-              <div className="text-3xl font-bold text-orange-600">{formatCurrency(stats.overdueAmount)}</div>
-              <p className="text-sm text-muted-foreground mt-1">{stats.overdue} invoices overdue</p>
+              <div className="text-3xl font-bold text-orange-600">{stats.overdueCount}</div>
+              <p className="text-sm text-muted-foreground mt-1">invoices overdue</p>
             </NestCardContent>
           </NestCard>
         </Link>
@@ -185,13 +136,13 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <div className="font-medium">{invoice.invoice_number}</div>
-                      <div className="text-sm text-muted-foreground">{invoice.client_name}</div>
+                      <div className="text-sm text-muted-foreground">{invoice.client?.name || 'No client'}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="font-semibold">{formatCurrency(invoice.total)}</div>
-                      <div className="text-sm text-muted-foreground">Due {invoice.due_date}</div>
+                      <div className="text-sm text-muted-foreground">Due {format(new Date(invoice.due_date), 'MMM dd, yyyy')}</div>
                     </div>
                     <EggStatus status={invoice.status} />
                   </div>

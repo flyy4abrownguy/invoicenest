@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { NestButton } from "@/components/nest/nest-button"
 import { X } from "lucide-react"
+import { formatPhoneNumber } from "@/lib/utils/phone-formatter"
 
 interface InlineClientData {
   name: string
@@ -28,7 +29,9 @@ export function InlineClientForm({ onClientDataChange, onCancel }: InlineClientF
   })
 
   const handleChange = (field: keyof InlineClientData, value: string) => {
-    const updated = { ...clientData, [field]: value }
+    // Auto-format phone number
+    const finalValue = field === 'phone' ? formatPhoneNumber(value) : value
+    const updated = { ...clientData, [field]: finalValue }
     setClientData(updated)
 
     // Only pass data if name and email are filled (minimum required)

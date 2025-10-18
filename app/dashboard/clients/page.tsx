@@ -61,7 +61,7 @@ export default function ClientsPage() {
     setIsDialogOpen(true)
   }
 
-  const handleSaveClient = async (data: any) => {
+  const handleSaveClient = async (data: Partial<Client>) => {
     // TODO: Implement actual API call
     console.log('Saving client:', data)
 
@@ -73,7 +73,11 @@ export default function ClientsPage() {
       const newClient: Client = {
         id: `client-${Date.now()}`,
         user_id: "user-1",
-        ...data,
+        name: data.name || '',
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        notes: data.notes,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }

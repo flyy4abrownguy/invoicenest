@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { InvoiceForm } from "@/components/invoices/invoice-form"
-import { NestCard, NestCardContent, NestCardHeader, NestCardTitle } from "@/components/nest/nest-card"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { NestButton } from "@/components/nest/nest-button"
@@ -17,13 +15,11 @@ const mockClients = [
 
 export default function NewInvoicePage() {
   const router = useRouter()
-  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSaveInvoice = async (data: any, status: 'draft' | 'sent') => {
-    setIsSaving(true)
+  const handleSaveInvoice = async (data: unknown, status: 'draft' | 'sent') => {
     try {
       // TODO: Implement actual API call to save invoice
-      console.log('Saving invoice:', { ...data, status })
+      console.log('Saving invoice:', data, status)
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
@@ -32,8 +28,6 @@ export default function NewInvoicePage() {
       router.push('/dashboard/invoices')
     } catch (error) {
       console.error('Error saving invoice:', error)
-    } finally {
-      setIsSaving(false)
     }
   }
 

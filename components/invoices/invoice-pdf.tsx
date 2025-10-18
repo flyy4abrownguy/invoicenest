@@ -1,6 +1,6 @@
 "use client"
 
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { Invoice, Profile } from '@/lib/types'
 import { format } from 'date-fns'
 import { formatCurrency } from '@/lib/utils/calculations'

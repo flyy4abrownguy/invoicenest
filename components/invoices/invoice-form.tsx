@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { format } from "date-fns"
-import { Calendar, Plus, Trash2, Save, Send } from "lucide-react"
+import { Plus, Trash2, Save, Send } from "lucide-react"
 import { useInvoiceStore } from "@/lib/store/invoice-store"
 import { invoiceSchema } from "@/lib/utils/validation"
 import { NestButton } from "@/components/nest/nest-button"
@@ -50,16 +50,20 @@ export function InvoiceForm({ onSave, clients = [] }: InvoiceFormProps) {
     if (items.length === 0) {
       addItem()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     updateInvoice({ tax_rate: Number(taxRate), discount: Number(discount) })
     recalculateInvoice()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taxRate, discount])
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setValue('items', items as any)
     recalculateInvoice()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, setValue])
 
   const handleSaveInvoice = async (status: 'draft' | 'sent') => {

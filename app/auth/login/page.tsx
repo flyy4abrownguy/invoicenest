@@ -39,8 +39,8 @@ export default function LoginPage() {
     try {
       await signIn(data.email, data.password)
       router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in')
     } finally {
       setIsLoading(false)
     }
@@ -52,8 +52,8 @@ export default function LoginPage() {
 
     try {
       await signInWithGoogle()
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in with Google')
       setIsLoading(false)
     }
   }

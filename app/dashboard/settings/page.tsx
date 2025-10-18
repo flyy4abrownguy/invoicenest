@@ -245,7 +245,7 @@ export default function SettingsPage() {
                       Unlock unlimited invoices, remove watermarks, and access premium features
                     </p>
                   </div>
-                  <NestButton variant="default" withNest>
+                  <NestButton withNest>
                     Upgrade Now
                   </NestButton>
                 </div>

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -25,7 +24,6 @@ const signupSchema = z.object({
 })
 
 export default function SignUpPage() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -45,8 +43,8 @@ export default function SignUpPage() {
     try {
       await signUp(data.email, data.password, data.fullName)
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to create account')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account')
     } finally {
       setIsLoading(false)
     }
@@ -58,8 +56,8 @@ export default function SignUpPage() {
 
     try {
       await signInWithGoogle()
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign up with Google')
       setIsLoading(false)
     }
   }

@@ -1,6 +1,6 @@
 import { NestLogoWithText } from "@/components/nest/nest-logo";
 import Link from "next/link";
-import { Home, FileText, Users, Settings } from "lucide-react";
+import { Home, FileText, Users, Settings, Repeat } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { LogoutButton } from "@/components/dashboard/logout-button";
 
@@ -36,6 +36,15 @@ export default function DashboardLayout({
               >
                 <FileText className="w-5 h-5" />
                 <span className="font-medium">Invoices</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/recurring-invoices"
+                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted transition-colors text-foreground"
+              >
+                <Repeat className="w-5 h-5" />
+                <span className="font-medium">Recurring</span>
               </Link>
             </li>
             <li>

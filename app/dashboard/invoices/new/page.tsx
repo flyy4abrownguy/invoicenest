@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic';
+
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
 import { InvoiceForm } from "@/components/invoices/invoice-form"

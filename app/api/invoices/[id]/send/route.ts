@@ -6,10 +6,10 @@ import { Resend } from 'resend'
 import { getInvoiceEmailTemplate } from '@/lib/email/templates'
 import { renderToStream } from '@react-pdf/renderer'
 import { InvoicePDF } from '@/components/invoices/invoice-pdf'
-import { createElement } from 'react'
+import React from 'react'
 import { updateInvoiceStatus } from '@/lib/db/invoice-actions'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 /**
  * POST /api/invoices/[id]/send
@@ -65,16 +65,18 @@ export async function POST(
 
     // Generate PDF
     const isPro = profile.subscription_tier === 'pro' || profile.subscription_tier === 'business'
-    const pdfElement = createElement(InvoicePDF, {
-      invoice,
-      profile,
-      isPro,
-    })
 
-    const stream = await renderToStream(pdfElement)
-    const chunks: Uint8Array[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stream = await renderToStream(
+      React.createElement(InvoicePDF, {
+        invoice,
+        profile,
+        isPro,
+      }) as any
+    )
+    const chunks: Buffer[] = []
     for await (const chunk of stream) {
-      chunks.push(chunk)
+      chunks.push(Buffer.from(chunk))
     }
     const pdfBuffer = Buffer.concat(chunks)
 

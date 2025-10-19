@@ -1,6 +1,6 @@
 export type SubscriptionTier = 'free' | 'pro' | 'business';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-export type RecurringFrequency = 'weekly' | 'monthly' | 'yearly';
+export type RecurringFrequency = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
 export interface Profile {
   id: string;
@@ -96,4 +96,32 @@ export interface DashboardStats {
   paidInvoices: number;
   pendingAmount: number;
   overdueCount: number;
+}
+
+export interface RecurringInvoiceItem {
+  id: string;
+  recurring_invoice_id: string;
+  description: string;
+  quantity: number;
+  rate: number;
+  created_at: string;
+}
+
+export interface RecurringInvoice {
+  id: string;
+  user_id: string;
+  client_id: string;
+  client?: Client;
+  frequency: RecurringFrequency;
+  start_date: string;
+  end_date?: string;
+  next_generation_date: string;
+  is_active: boolean;
+  invoice_number_prefix: string;
+  payment_terms: number;
+  notes?: string;
+  tax_rate: number;
+  items?: RecurringInvoiceItem[];
+  created_at: string;
+  updated_at: string;
 }

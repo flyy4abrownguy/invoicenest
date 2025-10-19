@@ -26,7 +26,7 @@ export const invoiceSchema = z.object({
   notes: z.string().optional(),
   payment_terms: z.string().optional(),
   is_recurring: z.boolean().optional(),
-  recurring_frequency: z.enum(['weekly', 'monthly', 'yearly']).optional(),
+  recurring_frequency: z.enum(['weekly', 'monthly', 'quarterly', 'yearly']).optional(),
 });
 
 export const profileSchema = z.object({

@@ -1,0 +1,127 @@
+===========================================
+VERCEL ENVIRONMENT VARIABLES
+Copy-Paste Guide for InvoiceNest
+===========================================
+
+INSTRUCTIONS:
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. For each variable below, click "Add New"
+3. Copy the Key and Value
+4. Select environments: Production, Preview, Development (all three)
+5. Click "Save"
+
+===========================================
+
+KEY: NEXT_PUBLIC_SUPABASE_URL
+VALUE: https://fplpcetyjzzpxjetswhv.supabase.co
+ENVIRONMENTS: Production, Preview, Development
+
+---
+
+KEY: NEXT_PUBLIC_SUPABASE_ANON_KEY
+VALUE: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwbHBjZXR5anp6cHhqZXRzd2h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3ODU2MzksImV4cCI6MjA3NjM2MTYzOX0.S4UB1yOLNaBbN-D6ZIksfIcv-XAPXQTfKOvdKkA29Bc
+ENVIRONMENTS: Production, Preview, Development
+
+---
+
+KEY: SUPABASE_SERVICE_ROLE_KEY
+VALUE: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwbHBjZXR5anp6cHhqZXRzd2h2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDc4NTYzOSwiZXhwIjoyMDc2MzYxNjM5fQ.eRAdQeMQ6VBTrrzp4pcoaDyJjkx2hSYt14epblcOzmU
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Keep this secret! Service role has elevated permissions.
+
+---
+
+KEY: STRIPE_SECRET_KEY
+VALUE: your_stripe_secret_key
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Get this from https://dashboard.stripe.com/apikeys
+
+---
+
+KEY: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+VALUE: your_stripe_publishable_key
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Get this from https://dashboard.stripe.com/apikeys
+
+---
+
+KEY: STRIPE_WEBHOOK_SECRET
+VALUE: your_stripe_webhook_secret_here
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Get this from Stripe webhook settings after creating webhook endpoint
+
+---
+
+KEY: NEXT_PUBLIC_APP_URL
+VALUE: https://your-domain.vercel.app
+ENVIRONMENTS: Production
+NOTE: Change this to your actual production URL
+
+KEY: NEXT_PUBLIC_APP_URL
+VALUE: http://localhost:3000
+ENVIRONMENTS: Development
+NOTE: For local development
+
+---
+
+KEY: CRON_SECRET
+VALUE: zIWYIX98rHZ3xH8gZD064BeSOCMJQQd2Xs814zvI7YI=
+ENVIRONMENTS: Production, Preview, Development
+NOTE: ⚠️ CRITICAL - Required for recurring invoices and payment reminders cron jobs
+
+---
+
+KEY: RESEND_API_KEY
+VALUE: your_resend_api_key
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Optional - Required for payment reminder emails. Get from https://resend.com/api-keys
+
+---
+
+KEY: RESEND_FROM_EMAIL
+VALUE: invoices@yourdomain.com
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Optional - Sender email for payment reminders. Default: onboarding@resend.dev
+
+===========================================
+OPTIONAL / FUTURE VARIABLES
+===========================================
+
+KEY: SENDGRID_API_KEY
+VALUE: your_sendgrid_api_key
+ENVIRONMENTS: Production, Preview, Development
+NOTE: Alternative to Resend for sending emails
+
+===========================================
+QUICK VERIFICATION CHECKLIST
+===========================================
+
+Essential for Production:
+☐ NEXT_PUBLIC_SUPABASE_URL
+☐ NEXT_PUBLIC_SUPABASE_ANON_KEY
+☐ SUPABASE_SERVICE_ROLE_KEY
+☐ STRIPE_SECRET_KEY
+☐ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+☐ NEXT_PUBLIC_APP_URL (set to production domain)
+☐ CRON_SECRET (CRITICAL!)
+
+Highly Recommended:
+☐ RESEND_API_KEY (for payment reminders)
+☐ STRIPE_WEBHOOK_SECRET (for payment processing)
+
+Optional:
+☐ RESEND_FROM_EMAIL (custom sender email)
+
+===========================================
+NOTES
+===========================================
+
+1. All NEXT_PUBLIC_* variables are exposed to the browser
+2. Keep service role keys and secrets private
+3. After adding variables, redeploy for changes to take effect
+4. Test cron jobs after deployment:
+   - /api/cron/generate-recurring-invoices
+   - /api/cron/send-payment-reminders
+5. Vercel automatically adds Authorization header with CRON_SECRET for cron jobs
+
+===========================================

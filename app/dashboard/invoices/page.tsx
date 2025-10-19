@@ -1,17 +1,16 @@
 import { NestButton } from "@/components/nest/nest-button";
 import { NestCard, NestCardContent } from "@/components/nest/nest-card";
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { getInvoices } from "@/lib/db/invoices";
 import { createClient } from "@/lib/supabase/server";
 import { InvoiceList } from "@/components/invoices/invoice-list";
 import { StatusFilter } from "@/components/invoices/status-filter";
+import { SearchInput } from "@/components/invoices/search-input";
 
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,7 +20,7 @@ export default async function InvoicesPage({
   }
 
   const invoices = await getInvoices(user.id);
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
 
   return (
     <div className="space-y-6">
@@ -41,20 +40,14 @@ export default async function InvoicesPage({
       <NestCard>
         <NestCardContent className="p-4">
           <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search invoices..."
-                className="pl-10"
-              />
-            </div>
+            <SearchInput />
             <StatusFilter currentStatus={status} />
           </div>
         </NestCardContent>
       </NestCard>
 
       {/* Invoice List */}
-      <InvoiceList invoices={invoices} statusFilter={status} />
+      <InvoiceList invoices={invoices} statusFilter={status} searchQuery={q} />
     </div>
   );
 }

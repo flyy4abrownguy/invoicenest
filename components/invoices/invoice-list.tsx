@@ -8,6 +8,7 @@ import { FileText, MoreVertical, Edit, Trash2, Copy, Mail, Download, CheckCircle
 import { formatCurrency } from "@/lib/utils/calculations";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,15 +20,27 @@ import { Invoice } from "@/lib/types";
 interface InvoiceListProps {
   invoices: Invoice[];
   statusFilter?: string;
+  searchQuery?: string;
 }
 
-export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
+export function InvoiceList({ invoices, statusFilter, searchQuery }: InvoiceListProps) {
   const router = useRouter();
 
-  // Filter invoices based on status
-  const filteredInvoices = statusFilter
-    ? invoices.filter(invoice => invoice.status === statusFilter)
-    : invoices;
+  // Filter invoices based on status and search
+  let filteredInvoices = invoices;
+
+  if (statusFilter) {
+    filteredInvoices = filteredInvoices.filter(invoice => invoice.status === statusFilter);
+  }
+
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filteredInvoices = filteredInvoices.filter(invoice =>
+      invoice.invoice_number.toLowerCase().includes(query) ||
+      invoice.client?.name?.toLowerCase().includes(query) ||
+      invoice.client?.email?.toLowerCase().includes(query)
+    );
+  }
 
   const handleEdit = (invoice: Invoice) => {
     router.push(`/dashboard/invoices/${invoice.id}/edit`);
@@ -38,30 +51,29 @@ export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
       return;
     }
 
-    try {
-      const response = await fetch(`/api/invoices/${invoice.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete invoice');
-      }
-
-      // Refresh the page to show updated data
+    const deletePromise = fetch(`/api/invoices/${invoice.id}`, {
+      method: 'DELETE',
+    }).then(res => {
+      if (!res.ok) throw new Error('Failed to delete');
       router.refresh();
-    } catch (error) {
-      console.error('Error deleting invoice:', error);
-      alert('Failed to delete invoice. Please try again.');
-    }
+    });
+
+    toast.promise(deletePromise, {
+      loading: 'Deleting invoice...',
+      success: `Invoice ${invoice.invoice_number} deleted`,
+      error: 'Failed to delete invoice',
+    });
   };
 
   const handleCopy = (invoice: Invoice) => {
-    alert(`Copy invoice ${invoice.invoice_number} functionality coming soon!`);
+    toast.info(`Copy invoice ${invoice.invoice_number} coming soon!`);
   };
 
   const handleEmail = async (invoice: Invoice) => {
     if (!invoice.client?.email) {
-      alert('This invoice has no client email address. Please add an email to the client first.');
+      toast.error('No client email', {
+        description: 'Please add an email address to the client first.'
+      });
       return;
     }
 
@@ -69,23 +81,19 @@ export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
       return;
     }
 
-    try {
-      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send invoice');
-      }
-
-      alert(`Invoice successfully sent to ${invoice.client.email}!`);
+    const sendPromise = fetch(`/api/invoices/${invoice.id}/send`, {
+      method: 'POST',
+    }).then(res => {
+      if (!res.ok) return res.json().then(data => { throw new Error(data.error) });
       router.refresh();
-    } catch (error) {
-      console.error('Error sending invoice:', error);
-      alert(error instanceof Error ? error.message : 'Failed to send invoice. Please try again.');
-    }
+      return res.json();
+    });
+
+    toast.promise(sendPromise, {
+      loading: `Sending to ${invoice.client.email}...`,
+      success: `Invoice sent successfully!`,
+      error: (err) => err.message || 'Failed to send invoice',
+    });
   };
 
   const handleDownloadPDF = async (invoice: Invoice) => {
@@ -107,25 +115,22 @@ export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
       return;
     }
 
-    try {
-      const response = await fetch(`/api/invoices/${invoice.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'paid' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to mark invoice as paid');
-      }
-
-      // Refresh the page to show updated data
+    const markPaidPromise = fetch(`/api/invoices/${invoice.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'paid' }),
+    }).then(res => {
+      if (!res.ok) throw new Error('Failed to mark as paid');
       router.refresh();
-    } catch (error) {
-      console.error('Error marking invoice as paid:', error);
-      alert('Failed to mark invoice as paid. Please try again.');
-    }
+    });
+
+    toast.promise(markPaidPromise, {
+      loading: 'Updating status...',
+      success: `Invoice ${invoice.invoice_number} marked as paid!`,
+      error: 'Failed to update invoice status',
+    });
   };
 
   return (

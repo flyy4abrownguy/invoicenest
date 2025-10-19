@@ -2,12 +2,16 @@ import { NestButton } from "@/components/nest/nest-button";
 import { NestCard, NestCardContent, NestCardHeader, NestCardTitle } from "@/components/nest/nest-card";
 import { EmptyNest } from "@/components/nest/empty-nest";
 import { EggStatus } from "@/components/nest/egg-status";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { StatusChart } from "@/components/dashboard/status-chart";
 import Link from "next/link";
 import { FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/calculations";
 import { getInvoices, getDashboardStats } from "@/lib/db/invoices";
+import { getProfile } from "@/lib/db/profiles";
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -15,6 +19,12 @@ export default async function DashboardPage() {
 
   if (!user) {
     return null; // Will be redirected by middleware
+  }
+
+  // Check if user has completed onboarding
+  const profile = await getProfile(user.id);
+  if (profile && !profile.company_name) {
+    redirect('/welcome');
   }
 
   // Fetch real data from database
@@ -110,6 +120,27 @@ export default async function DashboardPage() {
             </NestCardContent>
           </NestCard>
         </Link>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <NestCard>
+          <NestCardHeader>
+            <NestCardTitle>Revenue Trend</NestCardTitle>
+          </NestCardHeader>
+          <NestCardContent>
+            <RevenueChart invoices={invoices} />
+          </NestCardContent>
+        </NestCard>
+
+        <NestCard>
+          <NestCardHeader>
+            <NestCardTitle>Invoice Status</NestCardTitle>
+          </NestCardHeader>
+          <NestCardContent>
+            <StatusChart invoices={invoices} />
+          </NestCardContent>
+        </NestCard>
       </div>
 
       {/* Recent Invoices */}

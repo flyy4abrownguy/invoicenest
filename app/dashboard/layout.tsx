@@ -1,7 +1,8 @@
 import { NestLogoWithText } from "@/components/nest/nest-logo";
 import Link from "next/link";
-import { Home, FileText, Users, Settings, LogOut } from "lucide-react";
+import { Home, FileText, Users, Settings } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { LogoutButton } from "@/components/dashboard/logout-button";
 
 export default function DashboardLayout({
   children,
@@ -58,10 +59,7 @@ export default function DashboardLayout({
           </ul>
         </nav>
         <div className="p-4 border-t border-border">
-          <button className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground w-full">
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Sign Out</span>
-          </button>
+          <LogoutButton />
         </div>
       </aside>
 

@@ -1,9 +1,23 @@
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
 import { Invoice, InvoiceItem } from '@/lib/types'
 
+/**
+ * Get all invoices for a user
+ * Automatically detects and marks overdue invoices
+ */
 export async function getInvoices(userId: string) {
   const supabase = await createSupabaseClient()
 
+  // First, auto-detect and update overdue invoices
+  const today = new Date().toISOString().split('T')[0]
+  await supabase
+    .from('invoices')
+    .update({ status: 'overdue' })
+    .eq('user_id', userId)
+    .lt('due_date', today)
+    .in('status', ['sent', 'draft'])
+
+  // Then fetch all invoices
   const { data, error } = await supabase
     .from('invoices')
     .select(`

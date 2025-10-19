@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { getInvoices } from "@/lib/db/invoices";
 import { createClient } from "@/lib/supabase/server";
 import { InvoiceList } from "@/components/invoices/invoice-list";
+import { StatusFilter } from "@/components/invoices/status-filter";
 
 export default async function InvoicesPage({
   searchParams,
@@ -47,16 +48,7 @@ export default async function InvoicesPage({
                 className="pl-10"
               />
             </div>
-            <select
-              className="px-4 py-2 border border-border rounded-lg bg-background"
-              defaultValue={status || ""}
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="sent">Sent</option>
-              <option value="paid">Paid</option>
-              <option value="overdue">Overdue</option>
-            </select>
+            <StatusFilter currentStatus={status} />
           </div>
         </NestCardContent>
       </NestCard>

@@ -4,7 +4,7 @@ import { NestButton } from "@/components/nest/nest-button";
 import { NestCard, NestCardContent } from "@/components/nest/nest-card";
 import { EmptyNest } from "@/components/nest/empty-nest";
 import { EggStatus } from "@/components/nest/egg-status";
-import { FileText, MoreVertical, Edit, Trash2, Copy, Mail } from "lucide-react";
+import { FileText, MoreVertical, Edit, Trash2, Copy, Mail, Download, CheckCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/calculations";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -59,8 +59,73 @@ export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
     alert(`Copy invoice ${invoice.invoice_number} functionality coming soon!`);
   };
 
-  const handleEmail = (invoice: Invoice) => {
-    alert(`Email invoice ${invoice.invoice_number} functionality coming soon!`);
+  const handleEmail = async (invoice: Invoice) => {
+    if (!invoice.client?.email) {
+      alert('This invoice has no client email address. Please add an email to the client first.');
+      return;
+    }
+
+    if (!confirm(`Send invoice ${invoice.invoice_number} to ${invoice.client.email}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invoice');
+      }
+
+      alert(`Invoice successfully sent to ${invoice.client.email}!`);
+      router.refresh();
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      alert(error instanceof Error ? error.message : 'Failed to send invoice. Please try again.');
+    }
+  };
+
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      // Open PDF in new tab
+      window.open(`/api/invoices/${invoice.id}/pdf`, '_blank');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const handleMarkAsPaid = async (invoice: Invoice) => {
+    if (invoice.status === 'paid') {
+      return; // Already paid
+    }
+
+    if (!confirm(`Mark invoice ${invoice.invoice_number} as paid?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'paid' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark invoice as paid');
+      }
+
+      // Refresh the page to show updated data
+      router.refresh();
+    } catch (error) {
+      console.error('Error marking invoice as paid:', error);
+      alert('Failed to mark invoice as paid. Please try again.');
+    }
   };
 
   return (
@@ -115,6 +180,16 @@ export function InvoiceList({ invoices, statusFilter }: InvoiceListProps) {
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
+                          <Download className="w-4 h-4 mr-2" />
+                          Download PDF
+                        </DropdownMenuItem>
+                        {invoice.status !== 'paid' && (
+                          <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Mark as Paid
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleCopy(invoice)}>
                           <Copy className="w-4 h-4 mr-2" />
                           Copy

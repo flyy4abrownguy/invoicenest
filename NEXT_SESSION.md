@@ -2,15 +2,30 @@
 
 ## Don't Forget - Critical Setup Steps
 
-### 1. Add CRON_SECRET to Vercel Environment Variables
-- Go to Vercel Project Settings → Environment Variables
-- Add: `CRON_SECRET` = `zIWYIX98rHZ3xH8gZD064BeSOCMJQQd2Xs814zvI7YI=`
-- Set for: Production, Preview, and Development
+### 1. Upload Environment Variables to Vercel
+**Easy Method:** Use `.env.vercel.template` file
+- Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+- Click **"Import .env"** button
+- Upload or paste contents of `.env.vercel.template`
+- Select environments: Production, Preview, Development
 
-### 2. Configure Email Service (for Payment Reminders)
-- Add `RESEND_API_KEY` to Vercel environment variables
-- Add `RESEND_FROM_EMAIL` to Vercel (optional, e.g., `invoices@yourdomain.com`)
-- Or use the default: `onboarding@resend.dev`
+**Before uploading, update these values in `.env.vercel.template`:**
+- `NEXT_PUBLIC_APP_URL` → Your actual Vercel URL (e.g., `https://invoicenest.vercel.app`)
+- `STRIPE_SECRET_KEY` → Your real Stripe secret key from https://dashboard.stripe.com/apikeys
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` → Your real Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET` → Your Stripe webhook secret (create webhook first)
+- `RESEND_API_KEY` → Your Resend API key from https://resend.com/api-keys (for email reminders)
+- `RESEND_FROM_EMAIL` → Your sender email (optional, e.g., `invoices@yourdomain.com`)
+
+**Critical Variables:**
+- ✅ `CRON_SECRET` is already set (DO NOT CHANGE)
+- ⚠️ `SUPABASE_SERVICE_ROLE_KEY` is sensitive - keep it secret!
+
+### 2. Create Stripe Webhook (for Payment Processing)
+- Go to https://dashboard.stripe.com/webhooks
+- Create endpoint: `https://your-domain.vercel.app/api/webhooks/stripe`
+- Select events: `checkout.session.completed`, `payment_intent.succeeded`
+- Copy webhook signing secret to `STRIPE_WEBHOOK_SECRET`
 
 ### 3. Test Cron Jobs After Deployment
 - **Recurring Invoice Generation**: `/api/cron/generate-recurring-invoices`

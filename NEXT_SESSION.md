@@ -104,15 +104,16 @@ git push origin main
 ### High Priority
 - [ ] **Add Bitcoin (BTC) payment option** - Alternative to Stripe for cryptocurrency payments
 - [ ] **Add border styling to custom invoices** - Border colors, widths, styles for invoice templates
+- [ ] **Add custom payment reminder days** - Let users set custom number of days before/after due date (current: fixed at 7,3,1 before and 1,7,14 after)
 - [ ] Add UI pages for expense management
 - [ ] Add UI pages for template management
-- [ ] Add payment reminder settings page
+- [ ] Add payment reminder settings page with custom days input
 - [ ] Integrate currency selector into invoice form
 - [ ] Add notification system for invoice views/payments (user mentioned this)
 
 ### Testing & Setup
 - [ ] Test all cron jobs after deployment
-- [ ] Verify payment reminder schedule (current: 1, 7, 14 days after due)
+- [ ] Verify payment reminder schedule works with custom day settings
 
 ### Nice to Have
 - [ ] Create default expense categories on user signup

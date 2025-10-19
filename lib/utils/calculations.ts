@@ -1,4 +1,4 @@
-import { InvoiceItem } from "../types";
+import { InvoiceItem, Currency } from "../types";
 
 export function calculateItemAmount(quantity: number, rate: number): number {
   return Number((quantity * rate).toFixed(2));
@@ -47,4 +47,39 @@ export function generateInvoiceNumber(count: number): string {
 export function isOverdue(dueDate: string, status: string): boolean {
   if (status === 'paid' || status === 'cancelled') return false;
   return new Date(dueDate) < new Date();
+}
+
+// Currency utilities
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'CA$',
+  AUD: 'A$',
+  JPY: '¥',
+  INR: '₹',
+  CHF: 'CHF',
+  CNY: '¥',
+  SEK: 'kr',
+};
+
+export const CURRENCY_NAMES: Record<Currency, string> = {
+  USD: 'US Dollar',
+  EUR: 'Euro',
+  GBP: 'British Pound',
+  CAD: 'Canadian Dollar',
+  AUD: 'Australian Dollar',
+  JPY: 'Japanese Yen',
+  INR: 'Indian Rupee',
+  CHF: 'Swiss Franc',
+  CNY: 'Chinese Yuan',
+  SEK: 'Swedish Krona',
+};
+
+export function getCurrencySymbol(currency: Currency): string {
+  return CURRENCY_SYMBOLS[currency] || currency;
+}
+
+export function getCurrencyName(currency: Currency): string {
+  return CURRENCY_NAMES[currency] || currency;
 }

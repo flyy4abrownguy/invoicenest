@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { InvoiceForm } from "@/components/invoices/invoice-form"
 import { DraftSelectorDialog } from "@/components/invoices/draft-selector-dialog"
 import { InvoiceTemplatesDialog } from "@/components/invoices/invoice-templates-dialog"
@@ -22,7 +22,7 @@ interface NewClientData {
   address?: string
 }
 
-export default function NewInvoicePage() {
+function NewInvoiceContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { drafts, addDraft, removeDraft, getDraft } = useDraftStore()
@@ -292,5 +292,13 @@ export default function NewInvoicePage() {
         />
       </div>
     </>
+  )
+}
+
+export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <NewInvoiceContent />
+    </Suspense>
   )
 }

@@ -4,7 +4,17 @@ import { Invoice, PaymentReminderSettings, ReminderType } from '../types';
 import { formatCurrency, formatDate } from '../utils/calculations';
 import { getReminderSettings } from '../db/payment-reminders';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client lazily to avoid build-time errors
+let resend: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  if (!resend) {
+    throw new Error('Resend API key not configured');
+  }
+  return resend;
+}
 
 interface ReminderResult {
   success: number;
@@ -179,7 +189,8 @@ async function sendReminderEmail(
     </div>
   `;
 
-  await resend.emails.send({
+  const resendClient = getResendClient();
+  await resendClient.emails.send({
     from: `${profile.company_name || profile.full_name} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
     to: invoice.client.email,
     subject,
